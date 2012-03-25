@@ -30,7 +30,6 @@ import android.util.Log;
  * strings used in the protocol.
  */
 public abstract class C2DMBaseReceiver extends IntentService {
-    private static final String ACTION_C2DM_RETRY = "com.google.android.c2dm.intent.RETRY";
     private static final String ACTION_REGISTRATION_CALLBACK_INTENT = "com.google.android.c2dm.intent.REGISTRATION";
     private static final String ACTION_C2DM_RECEIVE = "com.google.android.c2dm.intent.RECEIVE";
 
@@ -38,94 +37,51 @@ public abstract class C2DMBaseReceiver extends IntentService {
     private static final String TAG = "C2DM";
 
     // Extras in the registration callback intents.
-    public static final String EXTRA_UNREGISTERED = "unregistered";
-
-    public static final String EXTRA_ERROR = "error";
-
-    public static final String EXTRA_REGISTRATION_ID = "registration_id";
+    private static final String EXTRA_UNREGISTERED = "unregistered";
+    private static final String EXTRA_ERROR = "error";
+    private static final String EXTRA_REGISTRATION_ID = "registration_id";
+    private static final String EXTRA_RETRY = "retry_register";
 
     /**
      * The device can't read the response, or there was a 500/503 from the server that can be retried later.
      * The application should use exponential back off and retry.
      */
     private static final String ERR_SERVICE_NOT_AVAILABLE = "SERVICE_NOT_AVAILABLE";
-    /**
-     * There is no Google account on the phone. The application should ask the user to open the account manager
-     * and add a Google account. Fix on the device side.
-     */
-    private static final String ERR_ACCOUNT_MISSING = "ACCOUNT_MISSING";
-    /**
-     * Bad password. The application should ask the user to enter his/her password, and let user retry manually later.
-     * Fix on the device side.
-     */
-    private static final String ERR_AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED";
-    /**
-     * The user has too many applications registered. The application should tell the user to uninstall some other
-     * applications, let user retry manually. Fix on the device side.
-     */
-    private static final String ERR_TOO_MANY_REGISTRATIONS = "TOO_MANY_REGISTRATIONS";
-    /**
-     * The sender account is not recognized.
-     */
-    private static final String ERR_INVALID_SENDER = "INVALID_SENDER";
 
     // wakelock
-    private static final String WAKELOCK_KEY = "C2DM_LIB";
+    private static final String WAKELOCK_KEY = C2DMBaseReceiver.class.getSimpleName();
 
     private static PowerManager.WakeLock mWakeLock;
-    private final String senderId;
+    private final String mSenderId;
 
     /**
      * The C2DMReceiver class must create a no-arg constructor and pass the
      * sender id to be used for registration.
+     *
+     * @param senderId an email address of the registered sender ID
      */
     public C2DMBaseReceiver(String senderId) {
         // senderId is used as base name for threads, etc.
         super(senderId);
-        this.senderId = senderId;
+        mSenderId = senderId;
     }
-
-    /**
-     * Called when a cloud message has been received.
-     */
-    protected abstract void onMessage(Context context, Intent intent);
-
-    /**
-     * Called on registration error. Override to provide better
-     * error messages.
-     * <p/>
-     * This is called in the context of a Service - no dialog or UI.
-     */
-    public abstract void onError(Context context, String errorId);
-
-    /**
-     * Called when a registration token has been received.
-     */
-    public void onRegistered(Context context, String registrationId) {
-        // registrationId will also be saved
-    }
-
-    /**
-     * Called when the device has been unregistered.
-     */
-    public void onUnregistered(Context context) {
-    }
-
 
     @Override
     public final void onHandleIntent(Intent intent) {
         try {
             Context context = getApplicationContext();
             if (intent.getAction().equals(ACTION_REGISTRATION_CALLBACK_INTENT)) {
-                handleRegistration(context, intent);
+                if (intent.getBooleanExtra(EXTRA_RETRY, false)) {
+                    C2DMessaging.register(context, mSenderId);
+                } else {
+                    handleRegistration(context, intent);
+                }
             } else if (intent.getAction().equals(ACTION_C2DM_RECEIVE)) {
                 onMessage(context, intent);
-            } else if (intent.getAction().equals(ACTION_C2DM_RETRY)) {
-                C2DMessaging.register(context, senderId);
             }
         } finally {
             //  Release the power lock, so phone can get back to sleep.
-            // The lock is reference counted by default, so multiple 
+            // The lock is reference counted by default, so multiple
             // messages are ok.
 
             // If the onMessage() needs to spawn a thread or do something else,
@@ -134,12 +90,15 @@ public abstract class C2DMBaseReceiver extends IntentService {
         }
     }
 
-
     /**
      * Called from the broadcast receiver.
      * Will process the received intent, call handleMessage(), registered(), etc.
      * in background threads, with a wake lock, while keeping the service
      * alive.
+     *
+     * @param context used to start the service
+     * @param intent  the intent received by the C2DM broadcast receiver
+     * @param impl    the class implementing {@link C2DMBaseReceiver}
      */
     static void runIntentInService(Context context, Intent intent, Class<?> impl) {
         if (mWakeLock == null) {
@@ -152,6 +111,34 @@ public abstract class C2DMBaseReceiver extends IntentService {
         intent.setClass(context, impl);
         context.startService(intent);
     }
+
+    /**
+     * Called when the device has been unregistered.
+     */
+    public void onUnregistered(Context context) {
+    }
+
+    /**
+     * Called when a cloud message has been received.
+     */
+    protected abstract void onMessage(Context context, Intent intent);
+
+
+    /**
+     * Called on registration error. Override to provide better
+     * error messages.
+     * <p/>
+     * This is called in the context of a Service - no dialog or UI.
+     *
+     * @param context
+     * @param errorId refer to http://code.google.com/android/c2dm/index.html#handling_reg
+     */
+    public abstract void onError(Context context, String errorId);
+
+    /**
+     * Called when a registration token has been received.
+     */
+    public abstract void onRegistration(Context context, String registrationId);
 
 
     private void handleRegistration(final Context context, Intent intent) {
@@ -178,7 +165,8 @@ public abstract class C2DMBaseReceiver extends IntentService {
                 long backoffTimeMs = C2DMessaging.getBackoff(context);
 
                 Log.d(TAG, "Scheduling registration retry, backoff = " + backoffTimeMs);
-                Intent retryIntent = new Intent(ACTION_C2DM_RETRY);
+                Intent retryIntent = new Intent(ACTION_REGISTRATION_CALLBACK_INTENT);
+                retryIntent.putExtra(EXTRA_RETRY, true);
                 PendingIntent retryPIntent = PendingIntent.getBroadcast(context,
                         0 /*requestCode*/, retryIntent, 0 /*flags*/);
 
@@ -192,7 +180,7 @@ public abstract class C2DMBaseReceiver extends IntentService {
         } else {
             try {
                 C2DMessaging.setRegistrationId(context, registrationId);
-                onRegistered(context, registrationId);
+                onRegistration(context, registrationId);
             } catch (Exception ex) {
                 Log.e(TAG, "Registration error " + ex.getMessage());
             }
