@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.codeslap.c2dm;
+package com.google.android.c2dm;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
