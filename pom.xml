@@ -9,7 +9,7 @@
 
     <groupId>com.codeslap</groupId>
     <artifactId>c2dm-library</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>Cloud To Device Messaging Library</name>
     <description>Library to handle C2DM</description>
