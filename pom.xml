@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>c2dm-library</groupId>
+    <groupId>com.codeslap</groupId>
     <artifactId>c2dm-library</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
