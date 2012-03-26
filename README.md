@@ -7,7 +7,7 @@ you already have [signup to C2DM][2].
 
 ###Usage
 
-1. Just add this to your POM:
+\1. Just add this to your POM:
 
 ```xml
 <dependency>
@@ -20,7 +20,7 @@ you already have [signup to C2DM][2].
 
 or [download the JAR][3] from the Maven Central Repository and link it manually to your project.
 
-2. Create a class that extends [`com.google.android.c2dm.C2DMBaseReceiver`][4] (remember that, since this class is
+\2. Create a class that extends [`com.google.android.c2dm.C2DMBaseReceiver`][4] (remember that, since this class is
 actually an Android [`Service`][5], you must declare a default constructor; and you must send the registered sender email to the super class. For
 instance: `super("your_registerd_sender_id@gmail.com")`). Then modify your manifest to look like this:
 
@@ -52,18 +52,19 @@ instance: `super("your_registerd_sender_id@gmail.com")`). Then modify your manif
 <uses-permission android:name="com.your.package.name.permission.C2D_MESSAGE"/>
 ```
 
-3. When necessary, register the device using:
+\3. When necessary, register the device using `C2DMessaging.register(String)` method. For instance:
 
 ```java
-// this can be place in your home activity.
+// this can be placed in your home activity.
 String registrationId = C2DMessaging.getRegistrationId(this /**context**/);
 if (TextUtils.isEmpty(registrationId)) {
     C2DMessaging.register(this, "your_registerd_sender_id@gmail.com");
 }
 ```
 
-Do not forget to send the registration ID to your server from the `onRegistration` method of your implementation of
-[`com.google.android.c2dm.C2DMBaseReceiver`][4] class. You need that ID to send push notifications to the clients.
+Do not forget to send the registration ID to your server from the `onRegistration` method of your
+[`com.google.android.c2dm.C2DMBaseReceiver`][4] implementation. You need that ID to send push notifications to
+the clients.
 
   [1]: http://code.google.com/android/c2dm/index.html
   [2]: http://code.google.com/android/c2dm/signup.html
