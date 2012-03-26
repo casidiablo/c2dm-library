@@ -52,7 +52,7 @@ instance: `super("your_registerd_sender_id@gmail.com")`). Then modify your manif
 <uses-permission android:name="com.your.package.name.permission.C2D_MESSAGE"/>
 ```
 
-\3. When necessary, register the device using `C2DMessaging.register(String)` method. For instance:
+3\. When necessary, register the device using `C2DMessaging.register(String)` method. For instance:
 
 ```java
 // this can be placed in your home activity.
