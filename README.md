@@ -7,7 +7,7 @@ you already have [signup to C2DM][2].
 
 ###Usage
 
-\1. Just add this to your POM:
+1\. Just add this to your POM:
 
 ```xml
 <dependency>
@@ -20,7 +20,7 @@ you already have [signup to C2DM][2].
 
 or [download the JAR][3] from the Maven Central Repository and link it manually to your project.
 
-\2. Create a class that extends [`com.google.android.c2dm.C2DMBaseReceiver`][4] (remember that, since this class is
+2\. Create a class that extends [`com.google.android.c2dm.C2DMBaseReceiver`][4] (remember that, since this class is
 actually an Android [`Service`][5], you must declare a default constructor; and you must send the registered sender email to the super class. For
 instance: `super("your_registerd_sender_id@gmail.com")`). Then modify your manifest to look like this:
 
